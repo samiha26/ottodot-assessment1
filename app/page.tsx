@@ -176,34 +176,37 @@ export default function Home() {
             Configure Problem
           </h2>
 
-          <div className="space-y-6 mb-6">
+          <div className="space-y-12 mb-10">
             {/* Difficulty Level */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+              <label className="block text-xl font-bold text-gray-800 mb-6 text-center">
                 Difficulty Level
               </label>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="flex flex-wrap justify-center gap-12 mx-auto mb-4">
                 <button
                   onClick={() => setDifficulty('Easy')}
-                  className={`py-5 px-6 rounded-full font-bold text-lg transition-all bg-white border-2 border-black hover:bg-gray-50 ${
-                    difficulty === 'Easy' ? 'shadow-lg' : ''
+                  className={`py-8 px-16 rounded-full font-bold text-2xl transition-all text-white ${
+                    difficulty === 'Easy' ? 'bg-indigo-600 shadow-xl scale-105' : 'bg-indigo-500 hover:bg-indigo-600'
                   }`}
+                  style={{ minWidth: '200px' }}
                 >
                   Easy
                 </button>
                 <button
                   onClick={() => setDifficulty('Medium')}
-                  className={`py-5 px-6 rounded-full font-bold text-lg transition-all bg-white border-2 border-black hover:bg-gray-50 ${
-                    difficulty === 'Medium' ? 'shadow-lg' : ''
+                  className={`py-8 px-16 rounded-full font-bold text-2xl transition-all text-white ${
+                    difficulty === 'Medium' ? 'bg-indigo-600 shadow-xl scale-105' : 'bg-indigo-500 hover:bg-indigo-600'
                   }`}
+                  style={{ minWidth: '200px' }}
                 >
                   Medium
                 </button>
                 <button
                   onClick={() => setDifficulty('Hard')}
-                  className={`py-5 px-6 rounded-full font-bold text-lg transition-all bg-white border-2 border-black hover:bg-gray-50 ${
-                    difficulty === 'Hard' ? 'shadow-lg' : ''
+                  className={`py-8 px-16 rounded-full font-bold text-2xl transition-all text-white ${
+                    difficulty === 'Hard' ? 'bg-indigo-600 shadow-xl scale-105' : 'bg-indigo-500 hover:bg-indigo-600'
                   }`}
+                  style={{ minWidth: '200px' }}
                 >
                   Hard
                 </button>
@@ -212,10 +215,10 @@ export default function Home() {
 
             {/* Problem Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+              <label className="block text-xl font-bold text-gray-800 mb-6 text-center">
                 Problem Type
               </label>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="flex flex-wrap justify-center gap-10 mx-auto mb-4">
                 {[
                   { value: 'addition', label: 'Addition', icon: '+' },
                   { value: 'subtraction', label: 'Subtract', icon: '−' },
@@ -226,12 +229,12 @@ export default function Home() {
                   <button
                     key={type.value}
                     onClick={() => setProblemType(type.value as any)}
-                    className={`py-5 px-6 rounded-full font-bold text-lg transition-all flex flex-col items-center gap-2 bg-white border-2 border-black hover:bg-gray-50 ${
-                      problemType === type.value ? 'shadow-lg' : ''
+                    className={`py-8 px-10 rounded-full font-bold text-xl transition-all flex flex-col items-center gap-4 text-white ${
+                      problemType === type.value ? 'bg-indigo-600 shadow-xl scale-105' : 'bg-indigo-500 hover:bg-indigo-600'
                     }`}
                   >
-                    <span className="text-3xl">{type.icon}</span>
-                    <span className="text-sm font-semibold">{type.label}</span>
+                    <span className="text-4xl mt-1">{type.icon}</span>
+                    <span className="text-base font-bold mb-1">{type.label}</span>
                   </button>
                 ))}
               </div>
