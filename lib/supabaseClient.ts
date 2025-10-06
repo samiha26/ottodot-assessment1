@@ -18,18 +18,30 @@ export type Database = {
           created_at: string
           problem_text: string
           correct_answer: number
+          difficulty: 'Easy' | 'Medium' | 'Hard'
+          problem_type: 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed'
+          hint_text: string | null
+          solution_steps: string | null
         }
         Insert: {
           id?: string
           created_at?: string
           problem_text: string
           correct_answer: number
+          difficulty?: 'Easy' | 'Medium' | 'Hard'
+          problem_type?: 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed'
+          hint_text?: string | null
+          solution_steps?: string | null
         }
         Update: {
           id?: string
           created_at?: string
           problem_text?: string
           correct_answer?: number
+          difficulty?: 'Easy' | 'Medium' | 'Hard'
+          problem_type?: 'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed'
+          hint_text?: string | null
+          solution_steps?: string | null
         }
       }
       math_problem_submissions: {
@@ -39,6 +51,8 @@ export type Database = {
           user_answer: number
           is_correct: boolean
           feedback_text: string
+          hint_used: boolean
+          created_at: string
         }
         Insert: {
           id?: string
@@ -46,6 +60,8 @@ export type Database = {
           user_answer: number
           is_correct: boolean
           feedback_text: string
+          hint_used?: boolean
+          created_at?: string
         }
         Update: {
           id?: string
@@ -53,6 +69,8 @@ export type Database = {
           user_answer?: number
           is_correct?: boolean
           feedback_text?: string
+          hint_used?: boolean
+          created_at?: string
         }
       }
     }

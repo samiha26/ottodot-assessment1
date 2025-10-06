@@ -1,10 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface MathProblem {
   problem_text: string
   final_answer: number
+  hint?: string
+  solution_steps?: string
+  difficulty?: string
+  problem_type?: string
+}
+
+interface Stats {
+  totalProblems: number
+  attemptedProblems: number
+  correctAnswers: number
+  accuracy: number
+  score: number
 }
 
 export default function Home() {
@@ -14,77 +26,366 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [showHint, setShowHint] = useState(false)
+  const [showSolution, setShowSolution] = useState(false)
+  const [hintUsed, setHintUsed] = useState(false)
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium')
+  const [problemType, setProblemType] = useState<'addition' | 'subtraction' | 'multiplication' | 'division' | 'mixed'>('mixed')
+  const [stats, setStats] = useState<Stats | null>(null)
+
+  // Fetch stats on load
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/history')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    }
+  }
 
   const generateProblem = async () => {
-    // TODO: Implement problem generation logic
-    // This should call your API route to generate a new problem
-    // and save it to the database
+    setIsLoading(true)
+    setFeedback('')
+    setIsCorrect(null)
+    setUserAnswer('')
+    setShowHint(false)
+    setShowSolution(false)
+    setHintUsed(false)
+
+    try {
+      const response = await fetch('/api/math-problem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          difficulty,
+          problemType,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate problem')
+      }
+
+      const data = await response.json()
+      setProblem(data.problem)
+      setSessionId(data.sessionId)
+    } catch (error) {
+      console.error('Error generating problem:', error)
+      setFeedback('Oops! Something went wrong. Please try again.')
+      setIsCorrect(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const submitAnswer = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement answer submission logic
-    // This should call your API route to check the answer,
-    // save the submission, and generate feedback
+
+    if (!sessionId) {
+      setFeedback('Please generate a new problem first.')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/math-problem/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          userAnswer: parseFloat(userAnswer),
+          hintUsed,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit answer')
+      }
+
+      const data = await response.json()
+      setIsCorrect(data.isCorrect)
+      setFeedback(data.feedback)
+
+      // Refresh stats
+      fetchStats()
+    } catch (error) {
+      console.error('Error submitting answer:', error)
+      setFeedback('Oops! Something went wrong. Please try again.')
+      setIsCorrect(false)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleShowHint = () => {
+    setShowHint(true)
+    setHintUsed(true)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-          Math Problem Generator
-        </h1>
-        
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <button
-            onClick={generateProblem}
-            disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition duration-200 ease-in-out transform hover:scale-105"
-          >
-            {isLoading ? 'Generating...' : 'Generate New Problem'}
-          </button>
+    <div className="min-h-screen">
+      {/* Simple Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="container mx-auto px-8 md:px-12 lg:px-16 py-6 max-w-4xl">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Logo Section */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Math Problem Generator
+              </h1>
+              <p className="text-sm text-gray-600">Practice and improve your math skills</p>
+            </div>
+
+            {/* Stats */}
+            {stats && (
+              <div className="flex gap-4">
+                <div className="text-center">
+                  <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">Score</div>
+                  <div className="text-2xl font-semibold text-gray-900">{stats.score}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">Correct</div>
+                  <div className="text-2xl font-semibold text-gray-900">{stats.correctAnswers}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">Accuracy</div>
+                  <div className="text-2xl font-semibold text-gray-900">{stats.accuracy}%</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-8 md:px-12 lg:px-16 py-8 max-w-4xl">
+        {/* Settings Section */}
+        <div className="card p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6 text-center">
+            Configure Problem
+          </h2>
+
+          <div className="space-y-6 mb-6">
+            {/* Difficulty Level */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                Difficulty Level
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  onClick={() => setDifficulty('Easy')}
+                  className={`py-5 px-6 rounded-full font-bold text-lg transition-all bg-white border-2 border-black hover:bg-gray-50 ${
+                    difficulty === 'Easy' ? 'shadow-lg' : ''
+                  }`}
+                >
+                  Easy
+                </button>
+                <button
+                  onClick={() => setDifficulty('Medium')}
+                  className={`py-5 px-6 rounded-full font-bold text-lg transition-all bg-white border-2 border-black hover:bg-gray-50 ${
+                    difficulty === 'Medium' ? 'shadow-lg' : ''
+                  }`}
+                >
+                  Medium
+                </button>
+                <button
+                  onClick={() => setDifficulty('Hard')}
+                  className={`py-5 px-6 rounded-full font-bold text-lg transition-all bg-white border-2 border-black hover:bg-gray-50 ${
+                    difficulty === 'Hard' ? 'shadow-lg' : ''
+                  }`}
+                >
+                  Hard
+                </button>
+              </div>
+            </div>
+
+            {/* Problem Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                Problem Type
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { value: 'addition', label: 'Addition', icon: '+' },
+                  { value: 'subtraction', label: 'Subtract', icon: '−' },
+                  { value: 'multiplication', label: 'Multiply', icon: '×' },
+                  { value: 'division', label: 'Division', icon: '÷' },
+                  { value: 'mixed', label: 'Mixed', icon: '∑' },
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => setProblemType(type.value as any)}
+                    className={`py-5 px-6 rounded-full font-bold text-lg transition-all flex flex-col items-center gap-2 bg-white border-2 border-black hover:bg-gray-50 ${
+                      problemType === type.value ? 'shadow-lg' : ''
+                    }`}
+                  >
+                    <span className="text-3xl">{type.icon}</span>
+                    <span className="text-sm font-semibold">{type.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Generate Button */}
+          <div className="text-center">
+            <button
+              onClick={generateProblem}
+              disabled={isLoading}
+              className="btn-primary w-full md:w-auto"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating...
+                </span>
+              ) : (
+                'Generate New Problem'
+              )}
+            </button>
+          </div>
         </div>
 
+        {/* Problem Card */}
         {problem && (
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Problem:</h2>
-            <p className="text-lg text-gray-800 leading-relaxed mb-6">
-              {problem.problem_text}
-            </p>
-            
+          <div className="card p-8 mb-6 animate-fade-in">
+            <div className="flex items-center justify-center mb-6 flex-wrap gap-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Problem
+              </h2>
+              <div className="flex gap-2">
+                <span className={`badge ${
+                  problem.difficulty === 'Easy' ? 'badge-success' :
+                  problem.difficulty === 'Medium' ? 'badge-warning' :
+                  'badge-error'
+                }`}>
+                  {problem.difficulty}
+                </span>
+                <span className="badge" style={{background: '#e0e7ff', color: '#3730a3'}}>
+                  {problem.problem_type}
+                </span>
+              </div>
+            </div>
+
+            {/* Problem Text */}
+            <div className="bg-gray-50 rounded-lg p-6 mb-6 border border-gray-200">
+              <p className="text-lg text-gray-900 leading-relaxed text-center">
+                {problem.problem_text}
+              </p>
+            </div>
+
             <form onSubmit={submitAnswer} className="space-y-4">
-              <div>
-                <label htmlFor="answer" className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Answer:
+              {/* Answer Input */}
+              <div className="max-w-md mx-auto">
+                <label htmlFor="answer" className="block text-sm font-medium text-gray-700 mb-2 text-center">
+                  Your Answer
                 </label>
                 <input
                   type="number"
                   id="answer"
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input w-full text-lg"
                   placeholder="Enter your answer"
                   required
+                  step="any"
                 />
               </div>
-              
-              <button
-                type="submit"
-                disabled={!userAnswer || isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition duration-200 ease-in-out transform hover:scale-105"
-              >
-                Submit Answer
-              </button>
+
+              <div className="flex gap-3 flex-wrap justify-center">
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={!userAnswer || isLoading}
+                  className="btn-primary"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Checking...
+                    </span>
+                  ) : (
+                    'Submit Answer'
+                  )}
+                </button>
+
+                {/* Hint Button */}
+                {problem.hint && !showHint && (
+                  <button
+                    type="button"
+                    onClick={handleShowHint}
+                    className="btn-secondary"
+                  >
+                    Show Hint
+                  </button>
+                )}
+              </div>
             </form>
+
+            {/* Hint Section */}
+            {showHint && problem.hint && (
+              <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md p-4 animate-fade-in">
+                <p className="font-medium text-yellow-900 mb-1 text-sm text-center">Hint</p>
+                <p className="text-yellow-800 text-sm text-center">{problem.hint}</p>
+              </div>
+            )}
           </div>
         )}
 
+        {/* Feedback Card */}
         {feedback && (
-          <div className={`rounded-lg shadow-lg p-6 ${isCorrect ? 'bg-green-50 border-2 border-green-200' : 'bg-yellow-50 border-2 border-yellow-200'}`}>
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">
-              {isCorrect ? '✅ Correct!' : '❌ Not quite right'}
-            </h2>
-            <p className="text-gray-800 leading-relaxed">{feedback}</p>
+          <div className={`card p-6 mb-6 animate-fade-in ${
+            isCorrect
+              ? 'border-l-4 border-green-500 bg-green-50'
+              : 'border-l-4 border-red-500 bg-red-50'
+          }`}>
+            <div className="mb-4 text-center">
+              <h2 className="text-lg font-semibold mb-2" style={{color: isCorrect ? '#065f46' : '#991b1b'}}>
+                {isCorrect ? 'Correct!' : 'Incorrect'}
+              </h2>
+              <p className="text-sm" style={{color: isCorrect ? '#047857' : '#b91c1c'}}>{feedback}</p>
+            </div>
+
+            {/* Solution Toggle */}
+            {!isCorrect && problem?.solution_steps && (
+              <div className="text-center">
+                <button
+                  onClick={() => setShowSolution(!showSolution)}
+                  className="btn-secondary text-sm"
+                >
+                  {showSolution ? 'Hide Solution' : 'Show Solution'}
+                </button>
+              </div>
+            )}
+
+            {/* Step-by-Step Solution */}
+            {showSolution && problem?.solution_steps && (
+              <div className="mt-4 bg-white rounded-md p-4 border border-gray-200 animate-fade-in">
+                <h3 className="font-medium text-gray-900 text-sm mb-2 text-center">
+                  Step-by-Step Solution
+                </h3>
+                <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line text-center">
+                  {problem.solution_steps}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
